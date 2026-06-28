@@ -24,10 +24,6 @@ static void root_update_proc(Layer *layer, GContext *ctx) {
                      GPoint(0, ZONE_HEIGHT),
                      GPoint(DISPLAY_WIDTH - 1, ZONE_HEIGHT));
 
-  /* Draw bitmaps with GCompOpAnd: icon black pixels -> screen black,
-   * icon white pixels -> leave background unchanged. */
-  graphics_context_set_compositing_mode(ctx, GCompOpAnd);
-
   VibeAssignment va = *s_ui->vibe_assignment;
 
   for (int i = 0; i < NUM_ZONES; i++) {

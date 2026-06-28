@@ -6,65 +6,10 @@
 #define ZONE_HEIGHT          (DISPLAY_HEIGHT / NUM_ZONES)
 #define PROGRESS_BAR_HEIGHT  16
 
+#define ICON_SIZE            24   /* all icons are 24x24 px */
 #define ICON_INSET           3
-#define PLAY_W               16    /* ~30% bigger than original 12 */
-#define PLAY_H               16
-#define PAUSE_BAR_W          4
-#define PAUSE_BAR_GAP        3
-
-#define VIBE_ICON_W          32
-#define VIBE_ICON_H          20
-#define VIBE_CIRCLE_R        5
-#define VIBE_ARC_INNER_R     9
-#define VIBE_ARC_OUTER_R     13
-#define VIBE_ARC_HALF_SPAN   45    /* degrees of arc on each side */
 
 static UIContext *s_ui = NULL;
-
-static void draw_play_icon(GContext *ctx, int x, int y) {
-  GPoint points[3] = {
-    GPoint(x, y),
-    GPoint(x, y + PLAY_H - 1),
-    GPoint(x + PLAY_W - 1, y + (PLAY_H - 1) / 2)
-  };
-  GPathInfo info = { .num_points = 3, .points = points };
-  GPath *path = gpath_create(&info);
-  gpath_draw_filled(ctx, path);
-  gpath_destroy(path);
-}
-
-static void draw_pause_icon(GContext *ctx, int x, int y) {
-  GRect bar1 = GRect(x, y, PAUSE_BAR_W, PLAY_H - 1);
-  GRect bar2 = GRect(x + PAUSE_BAR_W + PAUSE_BAR_GAP, y, PAUSE_BAR_W, PLAY_H - 1);
-  graphics_fill_rect(ctx, bar1, 0, GCornerNone);
-  graphics_fill_rect(ctx, bar2, 0, GCornerNone);
-}
-
-static void draw_vibe_icon(GContext *ctx, int zone_y, bool is_assigned) {
-  int vibe_x = DISPLAY_WIDTH - ICON_INSET - VIBE_ICON_W;
-  int vibe_y = zone_y + ICON_INSET;
-  int cx = vibe_x + VIBE_ICON_W / 2;
-  int cy = vibe_y + VIBE_ICON_H / 2;
-
-  graphics_context_set_stroke_color(ctx, GColorBlack);
-  graphics_context_set_stroke_width(ctx, 2);
-  graphics_draw_circle(ctx, GPoint(cx, cy), VIBE_CIRCLE_R);
-
-  if (is_assigned) {
-    int radii[2] = { VIBE_ARC_INNER_R, VIBE_ARC_OUTER_R };
-    for (int i = 0; i < 2; i++) {
-      int r = radii[i];
-      GRect arc_rect = GRect(cx - r, cy - r, 2 * r, 2 * r);
-      graphics_draw_arc(ctx, arc_rect, GOvalScaleModeFillCircle,
-                        DEG_TO_TRIGANGLE(270 - VIBE_ARC_HALF_SPAN),
-                        DEG_TO_TRIGANGLE(270 + VIBE_ARC_HALF_SPAN));
-      graphics_draw_arc(ctx, arc_rect, GOvalScaleModeFillCircle,
-                        DEG_TO_TRIGANGLE(90 - VIBE_ARC_HALF_SPAN),
-                        DEG_TO_TRIGANGLE(90 + VIBE_ARC_HALF_SPAN));
-    }
-  }
-  graphics_context_set_stroke_width(ctx, 1);
-}
 
 static void root_update_proc(Layer *layer, GContext *ctx) {
   (void)layer;
@@ -79,35 +24,41 @@ static void root_update_proc(Layer *layer, GContext *ctx) {
                      GPoint(0, ZONE_HEIGHT),
                      GPoint(DISPLAY_WIDTH - 1, ZONE_HEIGHT));
 
+  /* Draw bitmaps with GCompOpAnd: icon black pixels -> screen black,
+   * icon white pixels -> leave background unchanged. */
+  graphics_context_set_compositing_mode(ctx, GCompOpAnd);
+
   VibeAssignment va = *s_ui->vibe_assignment;
 
   for (int i = 0; i < NUM_ZONES; i++) {
     int zone_y = i * ZONE_HEIGHT;
     TimerState *t = s_ui->timers[i];
-    graphics_context_set_fill_color(ctx, GColorBlack);
 
+    /* Progress bar */
     uint32_t bar_width = timer_seconds_bar_width(t->elapsed_seconds, DISPLAY_WIDTH);
     if (bar_width > 0) {
-      GRect bar_rect = GRect(0,
-                             zone_y + ZONE_HEIGHT - PROGRESS_BAR_HEIGHT,
-                             bar_width,
-                             PROGRESS_BAR_HEIGHT);
-      graphics_fill_rect(ctx, bar_rect, 0, GCornerNone);
+      graphics_context_set_fill_color(ctx, GColorBlack);
+      graphics_fill_rect(ctx,
+                         GRect(0, zone_y + ZONE_HEIGHT - PROGRESS_BAR_HEIGHT,
+                               bar_width, PROGRESS_BAR_HEIGHT),
+                         0, GCornerNone);
     }
 
-    int icon_x = ICON_INSET;
-    int icon_y = zone_y + ICON_INSET;
-    if (t->elapsed_seconds == 0) {
-      /* no play/pause indicator when timer is at zero */
-    } else if (t->running) {
-      draw_play_icon(ctx, icon_x, icon_y);
-    } else {
-      draw_pause_icon(ctx, icon_x, icon_y);
+    /* Play / pause icon (top-left; blank when timer is at 0:00) */
+    GRect play_rect = GRect(ICON_INSET, zone_y + ICON_INSET, ICON_SIZE, ICON_SIZE);
+    if (t->elapsed_seconds > 0) {
+      GBitmap *bmp = t->running ? s_ui->bmp_play : s_ui->bmp_pause;
+      graphics_draw_bitmap_in_rect(ctx, bmp, play_rect);
     }
 
+    /* Vibe icon (top-right) */
     bool is_assigned = ((i == 0) && (va == VIBE_TIMER1)) ||
                        ((i == 1) && (va == VIBE_TIMER2));
-    draw_vibe_icon(ctx, zone_y, is_assigned);
+    GBitmap *vibe_bmp = is_assigned ? s_ui->bmp_vibe_on : s_ui->bmp_vibe_off;
+    GRect vibe_rect = GRect(DISPLAY_WIDTH - ICON_INSET - ICON_SIZE,
+                            zone_y + ICON_INSET,
+                            ICON_SIZE, ICON_SIZE);
+    graphics_draw_bitmap_in_rect(ctx, vibe_bmp, vibe_rect);
   }
 }
 
@@ -119,6 +70,11 @@ void ui_init(UIContext *ctx,
   ctx->timers[0] = timer1;
   ctx->timers[1] = timer2;
   ctx->vibe_assignment = vibe_assignment;
+
+  ctx->bmp_play     = gbitmap_create_with_resource(RESOURCE_ID_ICON_PLAY);
+  ctx->bmp_pause    = gbitmap_create_with_resource(RESOURCE_ID_ICON_PAUSE);
+  ctx->bmp_vibe_on  = gbitmap_create_with_resource(RESOURCE_ID_ICON_VIBE_ON);
+  ctx->bmp_vibe_off = gbitmap_create_with_resource(RESOURCE_ID_ICON_VIBE_OFF);
 
   ctx->main_window = window_create();
   ctx->root_layer = window_get_root_layer(ctx->main_window);
@@ -156,6 +112,11 @@ void ui_refresh(UIContext *ctx) {
 }
 
 void ui_destroy(UIContext *ctx) {
+  if (ctx->bmp_play)     { gbitmap_destroy(ctx->bmp_play);     ctx->bmp_play     = NULL; }
+  if (ctx->bmp_pause)    { gbitmap_destroy(ctx->bmp_pause);    ctx->bmp_pause    = NULL; }
+  if (ctx->bmp_vibe_on)  { gbitmap_destroy(ctx->bmp_vibe_on);  ctx->bmp_vibe_on  = NULL; }
+  if (ctx->bmp_vibe_off) { gbitmap_destroy(ctx->bmp_vibe_off); ctx->bmp_vibe_off = NULL; }
+
   for (int i = 0; i < 2; i++) {
     if (ctx->minute_text[i]) {
       text_layer_destroy(ctx->minute_text[i]);

@@ -21,6 +21,10 @@ typedef struct {
   Layer  *root_layer;
   TextLayer *minute_text[2];
   char minute_buf[2][8];
+  GBitmap *bmp_play;
+  GBitmap *bmp_pause;
+  GBitmap *bmp_vibe_on;
+  GBitmap *bmp_vibe_off;
 } UIContext;
 
 /* Build the UI. Pass pointers to the two TimerStates and the shared

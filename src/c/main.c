@@ -7,7 +7,7 @@
 #define TICK_INTERVAL_MS 1000
 
 static TimerState s_timers[2];
-static VibeAssignment s_vibe_assignment = VIBE_NONE;
+static VibeAssignment s_vibe_assignment = VIBE_TIMER1;
 static UIContext s_ui;
 static AppTimer *s_tick_timer = NULL;
 

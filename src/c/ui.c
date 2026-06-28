@@ -7,17 +7,17 @@
 #define PROGRESS_BAR_HEIGHT  16
 
 #define ICON_INSET           3
-#define PLAY_W               12
-#define PLAY_H               12
-#define PAUSE_BAR_W          3
-#define PAUSE_BAR_GAP        2
+#define PLAY_W               16    /* ~30% bigger than original 12 */
+#define PLAY_H               16
+#define PAUSE_BAR_W          4
+#define PAUSE_BAR_GAP        3
 
 #define VIBE_ICON_W          32
 #define VIBE_ICON_H          20
 #define VIBE_CIRCLE_R        5
 #define VIBE_ARC_INNER_R     9
 #define VIBE_ARC_OUTER_R     13
-#define VIBE_ARC_HALF_SPAN   70    /* degrees of arc on each side */
+#define VIBE_ARC_HALF_SPAN   45    /* degrees of arc on each side */
 
 static UIContext *s_ui = NULL;
 
@@ -46,12 +46,11 @@ static void draw_vibe_icon(GContext *ctx, int zone_y, bool is_assigned) {
   int cx = vibe_x + VIBE_ICON_W / 2;
   int cy = vibe_y + VIBE_ICON_H / 2;
 
-  graphics_context_set_fill_color(ctx, GColorBlack);
-  graphics_fill_circle(ctx, GPoint(cx, cy), VIBE_CIRCLE_R);
+  graphics_context_set_stroke_color(ctx, GColorBlack);
+  graphics_context_set_stroke_width(ctx, 2);
+  graphics_draw_circle(ctx, GPoint(cx, cy), VIBE_CIRCLE_R);
 
   if (is_assigned) {
-    graphics_context_set_stroke_color(ctx, GColorBlack);
-    graphics_context_set_stroke_width(ctx, 2);
     int radii[2] = { VIBE_ARC_INNER_R, VIBE_ARC_OUTER_R };
     for (int i = 0; i < 2; i++) {
       int r = radii[i];
@@ -63,8 +62,8 @@ static void draw_vibe_icon(GContext *ctx, int zone_y, bool is_assigned) {
                         DEG_TO_TRIGANGLE(90 - VIBE_ARC_HALF_SPAN),
                         DEG_TO_TRIGANGLE(90 + VIBE_ARC_HALF_SPAN));
     }
-    graphics_context_set_stroke_width(ctx, 1);
   }
+  graphics_context_set_stroke_width(ctx, 1);
 }
 
 static void root_update_proc(Layer *layer, GContext *ctx) {

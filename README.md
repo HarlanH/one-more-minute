@@ -5,7 +5,7 @@ A count-up timer for the classic Pebble watch. Two timers, one vibe assignment: 
 ## What it does
 
 - Two count-up timers displayed in stacked zones.
-- Each zone shows: the elapsed **minutes** (large center number), a **seconds progress bar** (fills left-to-right over 60 s), a **play/pause indicator** (top-left, filled triangle when running, two bars when paused, blank when the timer is at zero), and a **vibration icon** (top-right) — a filled circle with two concentric arcs on each side when that timer has the vibe assignment, or just the filled circle alone when it does not.
+- Each zone shows: the elapsed **minutes** (large center number), a **seconds progress bar** (fills left-to-right over 60 s), a **play/pause indicator** (top-left, filled triangle when running, two bars when paused, blank when the timer is at zero), and a **vibration icon** (top-right) — an outlined circle with two concentric arcs on each side when that timer has the vibe assignment, or just the outlined circle alone when it does not.
 - At most one timer at a time can vibrate. When enabled, it emits a **Roman-numeral vibration pattern** at each completed minute (1 → I, 4 → IV, 5 → V, 9 → IX, 10 → X, …). Pulses are short (125 ms), medium (250 ms), or long (500 ms). Gaps between symbols are perceptually tuned: **100 ms** between identical symbols in the same group (e.g., I→I, X→X) and **350 ms** between different symbol groups (e.g., V→I, X→V) so the pattern stays readable rather than blurring together. See [Smartwatches with higher-bandwidth vibration notifications](https://www.harlan.harris.name/2016/05/smartwatches-with-higher-bandwidth-vibration-notifications/) for background on the design approach.
 - Vibration assignment cycles through **timer 1 → timer 2 → none → timer 1 …**.
 
@@ -41,7 +41,7 @@ Timers freeze where they are when stopped. Short-pressing again resumes from the
 Indicator legend:
 
 - **Upper-left**: filled triangle when running, two bars when paused, blank when the timer is at 0:00.
-- **Upper-right**: filled circle with two concentric arcs on each side when that timer holds the vibe assignment; bare filled circle when it does not.
+- **Upper-right**: outlined circle with two concentric arcs on each side when that timer holds the vibe assignment; bare outlined circle when it does not.
 - **Bottom**: horizontal progress bar (16 px tall), fills left-to-right over 60 seconds, resets at each minute boundary.
 
 ## Vibration patterns

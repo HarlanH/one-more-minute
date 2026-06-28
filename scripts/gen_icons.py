@@ -188,10 +188,16 @@ ARC_THICKNESS = 1.8   # design-unit stroke width
 ARC_HALF_SPAN = 50    # degrees each side of the axis
 
 
+PHONE_STROKE = 1.5   # outline thickness in design units
+
 def draw_phone(buf):
-    fill_rect(buf,
-              PHONE_X * SCALE, PHONE_Y * SCALE,
-              PHONE_W * SCALE, PHONE_H * SCALE)
+    """Draw the phone body as an outlined (empty) rectangle."""
+    x, y, w, h = PHONE_X * SCALE, PHONE_Y * SCALE, PHONE_W * SCALE, PHONE_H * SCALE
+    t = PHONE_STROKE * SCALE
+    fill_rect(buf, x,         y,         w, t)       # top
+    fill_rect(buf, x,         y + h - t, w, t)       # bottom
+    fill_rect(buf, x,         y,         t, h)       # left
+    fill_rect(buf, x + w - t, y,         t, h)       # right
 
 
 def make_vibe_off():

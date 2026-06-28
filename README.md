@@ -5,8 +5,8 @@ A count-up timer for the classic Pebble watch. Two timers, one vibe assignment: 
 ## What it does
 
 - Two count-up timers displayed in stacked zones.
-- Each zone shows: the elapsed **minutes** (large center number), a **seconds progress bar** (fills left-to-right over 60 s), a small **play/pause indicator** (top-left, blank when the timer is at zero), and a larger **vibration icon** (top-right) that looks like `([])` when assigned and `[]` when not.
-- At most one timer at a time can vibrate. When enabled, it emits a **Roman-numeral vibration pattern** at each completed minute (1 → I, 4 → IV, 5 → V, 9 → IX, 10 → X, …). Pulse durations are tuned for high-bandwidth vibration communication (fast enough to be snappy; longer minute numbers still readable). See [Smartwatches with higher-bandwidth vibration notifications](https://www.harlan.harris.name/2016/05/smartwatches-with-higher-bandwidth-vibration-notifications/) for background on the design approach.
+- Each zone shows: the elapsed **minutes** (large center number), a **seconds progress bar** (fills left-to-right over 60 s), a **play/pause indicator** (top-left, filled triangle when running, two bars when paused, blank when the timer is at zero), and a **vibration icon** (top-right) — a filled circle with two concentric arcs on each side when that timer has the vibe assignment, or just the filled circle alone when it does not.
+- At most one timer at a time can vibrate. When enabled, it emits a **Roman-numeral vibration pattern** at each completed minute (1 → I, 4 → IV, 5 → V, 9 → IX, 10 → X, …). Pulses are short (125 ms), medium (250 ms), or long (500 ms). Gaps between symbols are perceptually tuned: **100 ms** between identical symbols in the same group (e.g., I→I, X→X) and **350 ms** between different symbol groups (e.g., V→I, X→V) so the pattern stays readable rather than blurring together. See [Smartwatches with higher-bandwidth vibration notifications](https://www.harlan.harris.name/2016/05/smartwatches-with-higher-bandwidth-vibration-notifications/) for background on the design approach.
 - Vibration assignment cycles through **timer 1 → timer 2 → none → timer 1 …**.
 
 ## Controls
@@ -40,21 +40,28 @@ Timers freeze where they are when stopped. Short-pressing again resumes from the
 
 Indicator legend:
 
-- **Upper-left**: ▶ filled triangle when running, ⏸ two bars when paused, blank when the timer is at 0:00.
-- **Upper-right**: `([])` square with outer vibe marks when that timer holds the vibe assignment, `[]` plain square when it does not.
-- **Bottom**: horizontal progress bar, fills left-to-right over 60 seconds, resets at each minute boundary.
+- **Upper-left**: filled triangle when running, two bars when paused, blank when the timer is at 0:00.
+- **Upper-right**: filled circle with two concentric arcs on each side when that timer holds the vibe assignment; bare filled circle when it does not.
+- **Bottom**: horizontal progress bar (16 px tall), fills left-to-right over 60 seconds, resets at each minute boundary.
 
 ## Vibration patterns
 
-Roman numerals of the minute number, mapped to Pebble's built-in vibe durations:
+Roman numerals of the minute number, mapped to Pebble vibe durations:
 
-| Symbol | Vibe   |
-|--------|--------|
-| I      | short  |
-| V      | medium |
-| X      | long   |
-| IV     | short, medium |
-| IX     | short, long |
+| Symbol | Vibe   | Duration |
+|--------|--------|----------|
+| I      | short  | 125 ms   |
+| V      | medium | 250 ms   |
+| X      | long   | 500 ms   |
+| IV     | short, medium | |
+| IX     | short, long  | |
+
+Gaps between symbols are grouped by perceptual salience:
+
+- **100 ms** short gap between identical symbols in the same group (e.g., the three I's in III, or the X's in XX)
+- **350 ms** long gap between different symbol groups (e.g., V then I in VIII, or X then I in XIV)
+
+Example: minute 8 (VIII) = medium, *(long gap)*, short, *(short gap)*, short, *(short gap)*, short.
 
 Minute 0 is silent. First vibration fires at 1:00. Patterns go up to **39** minutes (XXXIX); beyond that, use a different timer.
 

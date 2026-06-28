@@ -4,10 +4,11 @@
 
 #include "../../src/c/vibration.h"
 
-#define VIBE_SHORT_MS   125
-#define VIBE_MEDIUM_MS  250
-#define VIBE_LONG_MS    500
-#define VIBE_GAP_MS     75
+#define VIBE_SHORT_MS       125
+#define VIBE_MEDIUM_MS      250
+#define VIBE_LONG_MS        500
+#define VIBE_SHORT_GAP_MS   100   /* within a group of identical symbols */
+#define VIBE_LONG_GAP_MS    350   /* between different symbol groups (I/V/X) */
 
 /* Helper: check the pattern matches expected durations exactly. */
 static void expect_pattern(uint32_t minute,
@@ -17,105 +18,142 @@ static void expect_pattern(uint32_t minute,
   size_t n = vibration_pattern_for_minute(minute, buf, MAX_VIBRATION_SEGMENTS);
   if (n != expected_count) {
     printf("minute %u: expected %zu segments, got %zu. pattern: [", minute, expected_count, n);
-    for (size_t i = 0; i < n && i < 10; i++) printf("%u, ", buf[i]);
+    for (size_t i = 0; i < n && i < 16; i++) printf("%u, ", buf[i]);
     printf("]\n");
   }
   assert(n == expected_count);
   assert(0 == memcmp(buf, expected, expected_count * sizeof(uint32_t)));
 }
 
-/* I = 1 short pulse */
-static void test_minute_1_is_short(void) {
+/* I = single short pulse */
+static void test_minute_1(void) {
   uint32_t expect[] = { VIBE_SHORT_MS };
   expect_pattern(1, expect, 1);
 }
 
-/* II = short, gap, short */
-static void test_minute_2(void) {
-  uint32_t expect[] = { VIBE_SHORT_MS, VIBE_GAP_MS, VIBE_SHORT_MS };
+/* II = short, short_gap, short (same group -> short gap) */
+static void test_minute_2_same_group_short_gap(void) {
+  uint32_t expect[] = { VIBE_SHORT_MS, VIBE_SHORT_GAP_MS, VIBE_SHORT_MS };
   expect_pattern(2, expect, 3);
 }
 
-/* IV (4) = short, gap, medium */
-static void test_minute_4_subtractive(void) {
-  uint32_t expect[] = { VIBE_SHORT_MS, VIBE_GAP_MS, VIBE_MEDIUM_MS };
+/* III = short, short_gap, short, short_gap, short */
+static void test_minute_3(void) {
+  uint32_t expect[] = {
+    VIBE_SHORT_MS, VIBE_SHORT_GAP_MS,
+    VIBE_SHORT_MS, VIBE_SHORT_GAP_MS,
+    VIBE_SHORT_MS
+  };
+  expect_pattern(3, expect, 5);
+}
+
+/* IV = I then V: different groups -> long gap */
+static void test_minute_4_subtractive_long_gap(void) {
+  uint32_t expect[] = { VIBE_SHORT_MS, VIBE_LONG_GAP_MS, VIBE_MEDIUM_MS };
   expect_pattern(4, expect, 3);
 }
 
-/* V = medium */
+/* V = single medium pulse */
 static void test_minute_5(void) {
   uint32_t expect[] = { VIBE_MEDIUM_MS };
   expect_pattern(5, expect, 1);
 }
 
-/* VI = medium, gap, short */
-static void test_minute_6(void) {
-  uint32_t expect[] = { VIBE_MEDIUM_MS, VIBE_GAP_MS, VIBE_SHORT_MS };
+/* VI = V then I: different groups -> long gap */
+static void test_minute_6_long_gap(void) {
+  uint32_t expect[] = { VIBE_MEDIUM_MS, VIBE_LONG_GAP_MS, VIBE_SHORT_MS };
   expect_pattern(6, expect, 3);
 }
 
-/* IX (9) = short, gap, long */
-static void test_minute_9_subtractive(void) {
-  uint32_t expect[] = { VIBE_SHORT_MS, VIBE_GAP_MS, VIBE_LONG_MS };
+/* VIII = V, (long gap), I, (short gap), I, (short gap), I
+ * This is the key spec from the user: long gap after V, short gaps between I's. */
+static void test_minute_8_user_spec(void) {
+  uint32_t expect[] = {
+    VIBE_MEDIUM_MS, VIBE_LONG_GAP_MS,
+    VIBE_SHORT_MS,  VIBE_SHORT_GAP_MS,
+    VIBE_SHORT_MS,  VIBE_SHORT_GAP_MS,
+    VIBE_SHORT_MS
+  };
+  expect_pattern(8, expect, 7);
+}
+
+/* IX = I then X: different groups -> long gap */
+static void test_minute_9_subtractive_long_gap(void) {
+  uint32_t expect[] = { VIBE_SHORT_MS, VIBE_LONG_GAP_MS, VIBE_LONG_MS };
   expect_pattern(9, expect, 3);
 }
 
-/* X = long */
+/* X = single long pulse */
 static void test_minute_10(void) {
   uint32_t expect[] = { VIBE_LONG_MS };
   expect_pattern(10, expect, 1);
 }
 
-/* XIV = long, gap, short, gap, medium */
+/* XIV = X, (long gap), I, (long gap), V
+ * X to I is different (long), I to V within IV is different (long) */
 static void test_minute_14(void) {
   uint32_t expect[] = {
-    VIBE_LONG_MS, VIBE_GAP_MS,
-    VIBE_SHORT_MS, VIBE_GAP_MS,
+    VIBE_LONG_MS,   VIBE_LONG_GAP_MS,
+    VIBE_SHORT_MS,  VIBE_LONG_GAP_MS,
     VIBE_MEDIUM_MS
   };
   expect_pattern(14, expect, 5);
 }
 
-/* XIX = long, gap, short, gap, long */
+/* XIX = X, (long gap), I, (long gap), X */
 static void test_minute_19(void) {
   uint32_t expect[] = {
-    VIBE_LONG_MS, VIBE_GAP_MS,
-    VIBE_SHORT_MS, VIBE_GAP_MS,
+    VIBE_LONG_MS,   VIBE_LONG_GAP_MS,
+    VIBE_SHORT_MS,  VIBE_LONG_GAP_MS,
     VIBE_LONG_MS
   };
   expect_pattern(19, expect, 5);
 }
 
-/* XX = long, gap, long */
-static void test_minute_20(void) {
-  uint32_t expect[] = { VIBE_LONG_MS, VIBE_GAP_MS, VIBE_LONG_MS };
+/* XX = X, (short gap), X (same group -> short gap) */
+static void test_minute_20_same_group(void) {
+  uint32_t expect[] = { VIBE_LONG_MS, VIBE_SHORT_GAP_MS, VIBE_LONG_MS };
   expect_pattern(20, expect, 3);
 }
 
-/* XXIX = long, gap, long, gap, short, gap, long */
+/* XXIX = X, (short gap), X, (long gap), I, (long gap), X */
 static void test_minute_29(void) {
   uint32_t expect[] = {
-    VIBE_LONG_MS, VIBE_GAP_MS,
-    VIBE_LONG_MS, VIBE_GAP_MS,
-    VIBE_SHORT_MS, VIBE_GAP_MS,
+    VIBE_LONG_MS,   VIBE_SHORT_GAP_MS,
+    VIBE_LONG_MS,   VIBE_LONG_GAP_MS,
+    VIBE_SHORT_MS,  VIBE_LONG_GAP_MS,
     VIBE_LONG_MS
   };
   expect_pattern(29, expect, 7);
 }
 
-/* XXXIX = XXX + IX = long, gap, long, gap, long, gap, short, gap, long */
+/* XXXVIII = X,X,X (short gaps), (long gap), V, (long gap), I,I,I (short gaps) */
+static void test_minute_38_max_symbols(void) {
+  uint32_t expect[] = {
+    VIBE_LONG_MS,   VIBE_SHORT_GAP_MS,
+    VIBE_LONG_MS,   VIBE_SHORT_GAP_MS,
+    VIBE_LONG_MS,   VIBE_LONG_GAP_MS,
+    VIBE_MEDIUM_MS, VIBE_LONG_GAP_MS,
+    VIBE_SHORT_MS,  VIBE_SHORT_GAP_MS,
+    VIBE_SHORT_MS,  VIBE_SHORT_GAP_MS,
+    VIBE_SHORT_MS
+  };
+  expect_pattern(38, expect, 13);
+}
+
+/* XXXIX = X,X,X (short gaps), (long gap), I, (long gap), X */
 static void test_minute_39_upper_bound(void) {
   uint32_t expect[] = {
-    VIBE_LONG_MS, VIBE_GAP_MS,
-    VIBE_LONG_MS, VIBE_GAP_MS,
-    VIBE_LONG_MS, VIBE_GAP_MS,
-    VIBE_SHORT_MS, VIBE_GAP_MS,
+    VIBE_LONG_MS,   VIBE_SHORT_GAP_MS,
+    VIBE_LONG_MS,   VIBE_SHORT_GAP_MS,
+    VIBE_LONG_MS,   VIBE_LONG_GAP_MS,
+    VIBE_SHORT_MS,  VIBE_LONG_GAP_MS,
     VIBE_LONG_MS
   };
   expect_pattern(39, expect, 9);
 }
 
-/* Minute 0 must return 0 segments (caller guards this, but API should) */
+/* Minute 0 must return 0 segments */
 static void test_minute_0_is_invalid(void) {
   uint32_t buf[MAX_VIBRATION_SEGMENTS] = {0};
   size_t n = vibration_pattern_for_minute(0, buf, MAX_VIBRATION_SEGMENTS);
@@ -129,39 +167,24 @@ static void test_minute_over_ceiling_is_invalid(void) {
   assert(n == 0);
 }
 
-/* XXXVIII = 3 longs + medium + 3 shorts = 3,3,1,1,3 short,3 short = ?
- * Actually XXXVIII = 30 + 5 + 3 = X,X,X,V,I,I,I
- * = long, gap, long, gap, long, gap, medium, gap, short, gap, short, gap, short
- * = 13 segments */
-static void test_minute_38(void) {
-  uint32_t expect[] = {
-    VIBE_LONG_MS, VIBE_GAP_MS,
-    VIBE_LONG_MS, VIBE_GAP_MS,
-    VIBE_LONG_MS, VIBE_GAP_MS,
-    VIBE_MEDIUM_MS, VIBE_GAP_MS,
-    VIBE_SHORT_MS, VIBE_GAP_MS,
-    VIBE_SHORT_MS, VIBE_GAP_MS,
-    VIBE_SHORT_MS
-  };
-  expect_pattern(38, expect, 13);
-}
-
 int main(void) {
-  test_minute_1_is_short();
-  test_minute_2();
-  test_minute_4_subtractive();
+  test_minute_1();
+  test_minute_2_same_group_short_gap();
+  test_minute_3();
+  test_minute_4_subtractive_long_gap();
   test_minute_5();
-  test_minute_6();
-  test_minute_9_subtractive();
+  test_minute_6_long_gap();
+  test_minute_8_user_spec();
+  test_minute_9_subtractive_long_gap();
   test_minute_10();
   test_minute_14();
   test_minute_19();
-  test_minute_20();
+  test_minute_20_same_group();
   test_minute_29();
+  test_minute_38_max_symbols();
   test_minute_39_upper_bound();
   test_minute_0_is_invalid();
   test_minute_over_ceiling_is_invalid();
-  test_minute_38();
-  printf("vibration.test: all %d tests passed\n", 15);
+  printf("vibration.test: all %d tests passed\n", 16);
   return 0;
 }

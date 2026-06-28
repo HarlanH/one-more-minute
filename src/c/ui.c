@@ -12,21 +12,25 @@
 #define PAUSE_BAR_W          3
 #define PAUSE_BAR_GAP        2
 
-#define VIBE_ICON_W          24
+#define VIBE_ICON_W          32
 #define VIBE_ICON_H          20
-#define VIBE_BOX_W           10
-#define VIBE_BOX_H           16
-#define VIBE_MARK_OFFSET     4
+#define VIBE_CIRCLE_R        5
+#define VIBE_ARC_INNER_R     9
+#define VIBE_ARC_OUTER_R     13
+#define VIBE_ARC_HALF_SPAN   70    /* degrees of arc on each side */
 
 static UIContext *s_ui = NULL;
 
 static void draw_play_icon(GContext *ctx, int x, int y) {
-  GPoint top_left     = GPoint(x, y);
-  GPoint bottom_left  = GPoint(x, y + PLAY_H - 1);
-  GPoint right_point  = GPoint(x + PLAY_W - 1, y + (PLAY_H - 1) / 2);
-  graphics_draw_line(ctx, top_left, right_point);
-  graphics_draw_line(ctx, bottom_left, right_point);
-  graphics_draw_line(ctx, top_left, bottom_left);
+  GPoint points[3] = {
+    GPoint(x, y),
+    GPoint(x, y + PLAY_H - 1),
+    GPoint(x + PLAY_W - 1, y + (PLAY_H - 1) / 2)
+  };
+  GPathInfo info = { .num_points = 3, .points = points };
+  GPath *path = gpath_create(&info);
+  gpath_draw_filled(ctx, path);
+  gpath_destroy(path);
 }
 
 static void draw_pause_icon(GContext *ctx, int x, int y) {
@@ -39,20 +43,27 @@ static void draw_pause_icon(GContext *ctx, int x, int y) {
 static void draw_vibe_icon(GContext *ctx, int zone_y, bool is_assigned) {
   int vibe_x = DISPLAY_WIDTH - ICON_INSET - VIBE_ICON_W;
   int vibe_y = zone_y + ICON_INSET;
-  int box_x  = vibe_x + (VIBE_ICON_W - VIBE_BOX_W) / 2;
-  int box_y  = vibe_y + (VIBE_ICON_H - VIBE_BOX_H) / 2;
-  GRect box  = GRect(box_x, box_y, VIBE_BOX_W, VIBE_BOX_H);
+  int cx = vibe_x + VIBE_ICON_W / 2;
+  int cy = vibe_y + VIBE_ICON_H / 2;
 
-  graphics_context_set_stroke_color(ctx, GColorBlack);
-  graphics_draw_rect(ctx, box);
+  graphics_context_set_fill_color(ctx, GColorBlack);
+  graphics_fill_circle(ctx, GPoint(cx, cy), VIBE_CIRCLE_R);
 
   if (is_assigned) {
-    int top    = vibe_y + 3;
-    int bottom = vibe_y + VIBE_ICON_H - 3;
-    int lx     = box_x - VIBE_MARK_OFFSET;
-    int rx     = box_x + VIBE_BOX_W + VIBE_MARK_OFFSET;
-    graphics_draw_line(ctx, GPoint(lx, top), GPoint(lx, bottom));
-    graphics_draw_line(ctx, GPoint(rx, top), GPoint(rx, bottom));
+    graphics_context_set_stroke_color(ctx, GColorBlack);
+    graphics_context_set_stroke_width(ctx, 2);
+    int radii[2] = { VIBE_ARC_INNER_R, VIBE_ARC_OUTER_R };
+    for (int i = 0; i < 2; i++) {
+      int r = radii[i];
+      GRect arc_rect = GRect(cx - r, cy - r, 2 * r, 2 * r);
+      graphics_draw_arc(ctx, arc_rect, GOvalScaleModeFillCircle,
+                        DEG_TO_TRIGANGLE(270 - VIBE_ARC_HALF_SPAN),
+                        DEG_TO_TRIGANGLE(270 + VIBE_ARC_HALF_SPAN));
+      graphics_draw_arc(ctx, arc_rect, GOvalScaleModeFillCircle,
+                        DEG_TO_TRIGANGLE(90 - VIBE_ARC_HALF_SPAN),
+                        DEG_TO_TRIGANGLE(90 + VIBE_ARC_HALF_SPAN));
+    }
+    graphics_context_set_stroke_width(ctx, 1);
   }
 }
 

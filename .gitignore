@@ -1,0 +1,9 @@
+# Pebble build output
+build/
+.lock-waf_darwin_build
+
+# Node
+node_modules/
+
+# Local config
+.kilo/

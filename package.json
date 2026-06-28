@@ -1,0 +1,31 @@
+{
+  "name": "one-more-minute",
+  "author": "Harlan",
+  "version": "1.0.0",
+  "keywords": [
+    "pebble-app"
+  ],
+  "private": true,
+  "scripts": {
+    "test:js": "node --test test/pkjs/**/*.test.js",
+    "test:watch": "cc -std=c99 -Wall -Wextra -I./src/c ./src/c/timer.c ./test/watch/timer.test.c -o ./build/timer.test && ./build/timer.test && cc -std=c99 -Wall -Wextra -I./src/c ./src/c/vibration.c ./test/watch/vibration.test.c -o ./build/vibration.test && ./build/vibration.test"
+  },
+  "dependencies": {},
+  "pebble": {
+    "displayName": "One More Minute",
+    "uuid": "A1B2C3D4-E5F6-7890-ABCD-EF1234567890",
+    "projectType": "native",
+    "sdkVersion": "3",
+    "targetPlatforms": [
+      "flint"
+    ],
+    "watchapp": {
+      "watchface": false
+    },
+    "capabilities": [],
+    "messageKeys": {},
+    "resources": {
+      "media": []
+    }
+  }
+}

@@ -1,7 +1,7 @@
 {
   "name": "one-more-minute",
-  "author": "Harlan",
-  "version": "1.0.0",
+  "author": "Harlan Harris",
+  "version": "1.0.1",
   "keywords": [
     "pebble-app"
   ],
@@ -13,7 +13,7 @@
   "dependencies": {},
   "pebble": {
     "displayName": "One More Minute",
-    "uuid": "A1B2C3D4-E5F6-7890-ABCD-EF1234567890",
+    "uuid": "320E7F10-B815-4B26-B6B6-59DDB92E9BD3",
     "projectType": "native",
     "sdkVersion": "3",
     "targetPlatforms": [
@@ -29,7 +29,8 @@
         { "type": "png", "name": "ICON_PLAY",     "file": "icon_play.png"     },
         { "type": "png", "name": "ICON_PAUSE",    "file": "icon_pause.png"    },
         { "type": "png", "name": "ICON_VIBE_ON",  "file": "icon_vibe_on.png"  },
-        { "type": "png", "name": "ICON_VIBE_OFF", "file": "icon_vibe_off.png" }
+        { "type": "png", "name": "ICON_VIBE_OFF", "file": "icon_vibe_off.png" },
+        { "type": "png", "name": "app_icon_80",   "file": "icon_80.png"       }
       ]
     }
   }

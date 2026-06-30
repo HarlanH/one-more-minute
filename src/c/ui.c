@@ -1,13 +1,15 @@
 #include "ui.h"
 
-#define DISPLAY_WIDTH        144
-#define DISPLAY_HEIGHT       168
 #define NUM_ZONES            2
-#define ZONE_HEIGHT          (DISPLAY_HEIGHT / NUM_ZONES)
 #define PROGRESS_BAR_HEIGHT  16
 
-#define ICON_SIZE            24   /* all icons are 24x24 px */
+#define ICON_SIZE            24
 #define ICON_INSET           3
+
+#define ROUND_INSET_X        20
+#define ROUND_INSET_Y        10
+
+#define ACCENT_COLOR         PBL_IF_COLOR_ELSE(GColorBlue, GColorBlack)
 
 static UIContext *s_ui = NULL;
 
@@ -15,45 +17,67 @@ static void root_update_proc(Layer *layer, GContext *ctx) {
   (void)layer;
   if (s_ui == NULL) return;
 
+  int16_t w = s_ui->display_width;
+  int16_t zh = s_ui->zone_height;
+
   GRect bounds = layer_get_bounds(layer);
   graphics_context_set_fill_color(ctx, GColorWhite);
   graphics_fill_rect(ctx, bounds, 0, GCornerNone);
 
   graphics_context_set_stroke_color(ctx, GColorBlack);
-  graphics_draw_line(ctx,
-                     GPoint(0, ZONE_HEIGHT),
-                     GPoint(DISPLAY_WIDTH - 1, ZONE_HEIGHT));
+  graphics_draw_line(ctx, GPoint(0, zh), GPoint(w - 1, zh));
 
   VibeAssignment va = *s_ui->vibe_assignment;
 
   for (int i = 0; i < NUM_ZONES; i++) {
-    int zone_y = i * ZONE_HEIGHT;
+    int zone_y = i * zh;
     TimerState *t = s_ui->timers[i];
+    bool is_assigned = ((i == 0) && (va == VIBE_TIMER1)) ||
+                       ((i == 1) && (va == VIBE_TIMER2));
 
-    /* Progress bar */
-    uint32_t bar_width = timer_seconds_bar_width(t->elapsed_seconds, DISPLAY_WIDTH);
-    if (bar_width > 0) {
-      graphics_context_set_fill_color(ctx, GColorBlack);
-      graphics_fill_rect(ctx,
-                         GRect(0, zone_y + ZONE_HEIGHT - PROGRESS_BAR_HEIGHT,
-                               bar_width, PROGRESS_BAR_HEIGHT),
-                         0, GCornerNone);
+    int16_t bar_x, bar_y, bar_w;
+    int16_t play_x, play_y, vibe_x, vibe_y;
+
+    PBL_IF_ROUND_ELSE(
+      {
+        // Round layout: center icons vertically, flank the number
+        int16_t icon_y = zone_y + (zh - ICON_SIZE) / 2;
+        play_x = w / 2 - 70;
+        play_y = icon_y;
+        vibe_x = w / 2 + 70 - ICON_SIZE;
+        vibe_y = icon_y;
+        
+        // Progress bar at zone edge nearest divider
+        bar_w = w - 2 * ROUND_INSET_X;
+        bar_x = ROUND_INSET_X;
+        bar_y = (i == 0) ? (zone_y + zh - PROGRESS_BAR_HEIGHT - 4)
+                         : (zone_y + 4);
+      },
+      {
+        bar_w = w;
+        bar_x = 0;
+        bar_y = zone_y + zh - PROGRESS_BAR_HEIGHT;
+        play_x = ICON_INSET;
+        play_y = zone_y + ICON_INSET;
+        vibe_x = w - ICON_INSET - ICON_SIZE;
+        vibe_y = zone_y + ICON_INSET;
+      }
+    );
+
+    uint32_t bar_fill_w = timer_seconds_bar_width(t->elapsed_seconds, bar_w);
+    if (bar_fill_w > 0) {
+      graphics_context_set_fill_color(ctx, ACCENT_COLOR);
+      graphics_fill_rect(ctx, GRect(bar_x, bar_y, bar_fill_w, PROGRESS_BAR_HEIGHT), 0, GCornerNone);
     }
 
-    /* Play / pause icon (top-left; blank when timer is at 0:00) */
-    GRect play_rect = GRect(ICON_INSET, zone_y + ICON_INSET, ICON_SIZE, ICON_SIZE);
+    GRect play_rect = GRect(play_x, play_y, ICON_SIZE, ICON_SIZE);
     if (t->elapsed_seconds > 0) {
       GBitmap *bmp = t->running ? s_ui->bmp_play : s_ui->bmp_pause;
       graphics_draw_bitmap_in_rect(ctx, bmp, play_rect);
     }
 
-    /* Vibe icon (top-right) */
-    bool is_assigned = ((i == 0) && (va == VIBE_TIMER1)) ||
-                       ((i == 1) && (va == VIBE_TIMER2));
     GBitmap *vibe_bmp = is_assigned ? s_ui->bmp_vibe_on : s_ui->bmp_vibe_off;
-    GRect vibe_rect = GRect(DISPLAY_WIDTH - ICON_INSET - ICON_SIZE,
-                            zone_y + ICON_INSET,
-                            ICON_SIZE, ICON_SIZE);
+    GRect vibe_rect = GRect(vibe_x, vibe_y, ICON_SIZE, ICON_SIZE);
     graphics_draw_bitmap_in_rect(ctx, vibe_bmp, vibe_rect);
   }
 }
@@ -76,14 +100,35 @@ void ui_init(UIContext *ctx,
   ctx->root_layer = window_get_root_layer(ctx->main_window);
   layer_set_update_proc(ctx->root_layer, root_update_proc);
 
+  GRect bounds = layer_get_bounds(ctx->root_layer);
+  ctx->display_width = bounds.size.w;
+  ctx->display_height = bounds.size.h;
+  ctx->zone_height = ctx->display_height / NUM_ZONES;
+
   GFont font = fonts_get_system_font(FONT_KEY_ROBOTO_BOLD_SUBSET_49);
 
   for (int i = 0; i < 2; i++) {
-    int zone_y = i * ZONE_HEIGHT;
-    GRect frame = GRect(0,
-                        zone_y + 8,
-                        DISPLAY_WIDTH,
-                        ZONE_HEIGHT - PROGRESS_BAR_HEIGHT - 16);
+    int zone_y = i * ctx->zone_height;
+    int16_t text_x, text_y, text_w, text_h;
+
+    PBL_IF_ROUND_ELSE(
+      {
+        // Round layout: center text vertically in the zone
+        text_x = 0;
+        text_h = 60;
+        text_y = zone_y + (ctx->zone_height - text_h) / 2;
+        text_w = ctx->display_width;
+      },
+      {
+        // Rectangular layout: center text vertically, leave room for bar at bottom
+        text_x = 0;
+        text_h = 60;
+        text_y = zone_y + (ctx->zone_height - PROGRESS_BAR_HEIGHT - text_h) / 2;
+        text_w = ctx->display_width;
+      }
+    );
+
+    GRect frame = GRect(text_x, text_y, text_w, text_h);
     ctx->minute_text[i] = text_layer_create(frame);
     text_layer_set_font(ctx->minute_text[i], font);
     text_layer_set_text_alignment(ctx->minute_text[i], GTextAlignmentCenter);
@@ -99,10 +144,15 @@ void ui_push(UIContext *ctx) {
 }
 
 void ui_refresh(UIContext *ctx) {
+  VibeAssignment va = *ctx->vibe_assignment;
   for (int i = 0; i < 2; i++) {
     uint32_t m = timer_minutes(ctx->timers[i]);
     snprintf(ctx->minute_buf[i], sizeof(ctx->minute_buf[i]), "%u", (unsigned)m);
     text_layer_set_text(ctx->minute_text[i], ctx->minute_buf[i]);
+    bool is_assigned = ((i == 0) && (va == VIBE_TIMER1)) ||
+                       ((i == 1) && (va == VIBE_TIMER2));
+    text_layer_set_text_color(ctx->minute_text[i],
+                              is_assigned ? ACCENT_COLOR : GColorBlack);
   }
   layer_mark_dirty(ctx->root_layer);
 }

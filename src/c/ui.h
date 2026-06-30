@@ -25,6 +25,9 @@ typedef struct {
   GBitmap *bmp_pause;
   GBitmap *bmp_vibe_on;
   GBitmap *bmp_vibe_off;
+  int16_t display_width;
+  int16_t display_height;
+  int16_t zone_height;
 } UIContext;
 
 /* Build the UI. Pass pointers to the two TimerStates and the shared

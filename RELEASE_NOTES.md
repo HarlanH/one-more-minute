@@ -6,6 +6,17 @@ A count-up stopwatch app for the Pebble smartwatch. Run two independent stopwatc
 
 ---
 
+## Version 1.1.0 — June 30, 2026
+
+**Multi-platform support**
+
+- Now supports all Pebble platforms except Aplite: basalt (Time/Time Steel), chalk (Time Round), diorite (Pebble 2), emery (Time 2), flint (Pebble 2 Duo), and gabbro (Round 2).
+- Dynamic layout that fills each display size correctly.
+- Rethought round-screen layout for Time Round (chalk) and Round 2 (gabbro) — content clusters near the center to avoid clipping at the circular edges.
+- Minimal color: accent-colored progress bars and a color highlight on the vibe-assigned timer on color watches; unchanged black-and-white on diorite and flint.
+
+---
+
 ## Version 1.0.0 — June 29, 2026
 
 **Initial release**

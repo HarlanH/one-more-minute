@@ -70,6 +70,13 @@ package.json    # App manifest (UUID, messageKeys, resources)
 - Include a generation counter (e.g. `LIST_GENERATION`) so the watch can reject stale/interleaved streams.
 - The watch builds a flat display-row array (headers + items). Toggles must map display-index back to source-index.
 
+## Emulator Best Practices
+
+- Use `pebble emu-button --emulator <platform> click <button>` to press buttons (back, up, select, down). Do NOT use the HTTP API.
+- For screenshots that show the app in action: install → wait 5s → press button → wait 20s → screenshot.
+- Kill running emulators before starting new ones: `pkill -f "Pebble Emulator" && pkill -f "qemu-system"`.
+- The `scripts/screenshot_platform.sh` helper automates this workflow.
+
 ## Workflow
 
 - Prefer reusable scripts in `scripts/` for protocol or API investigation before making app-code changes.

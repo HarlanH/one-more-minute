@@ -22,21 +22,23 @@ Timers freeze where they are when stopped. Short-pressing again resumes from the
 
 ## Display
 
-```
-┌──────────────────────────────┐
-│▶             ([])             │  Timer 1 — running, vibe assigned
-│                              │
-│          3                   │
-│                              │
-│██████████████████░░░░░░░░░░░░│     Seconds bar (fills 0–144 px over 60 s)
-├──────────────────────────────┤
-│⏸                        []   │  Timer 2 — paused, no vibe
-│                              │
-│          0                   │
-│                              │
-│░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░│
-└──────────────────────────────┘
-```
+The app displays two timer zones stacked vertically, separated by a horizontal divider.
+
+**Rectangular displays** (basalt, diorite, emery, flint):
+
+![Flint (Pebble 2 Duo) - rectangular display](screenshots/flint.png)
+
+**Round displays** (chalk, gabbro):
+
+![Gabbro (Pebble Round 2) - round display](screenshots/gabbro.png)
+
+Content clusters near the center divider on round displays to avoid clipping at the circular edges. Icons and progress bars are inset from the screen edges.
+
+**Color displays** (basalt, chalk, emery, gabbro):
+Progress bars render in accent blue. The vibe-assigned timer's minute number also renders in accent blue. Black-and-white displays (diorite, flint) remain pure B/W.
+
+**High-resolution displays** (emery, gabbro):
+Icons remain at 24px (Pebble SDK bitmaps tile rather than scale, so larger icons would require separate 36x36 resources).
 
 Indicator legend:
 
@@ -67,7 +69,8 @@ Minute 0 is silent. First vibration fires at 1:00. Patterns go up to **39** minu
 
 ## Requirements
 
-- Pebble 2 Duo (flint) or emery/gabbro hardware, **Pebble OS 4.x**
+- Pebble Time / Time Steel (basalt), Pebble Time Round (chalk), Pebble 2 (diorite), Pebble Time 2 (emery), Pebble 2 Duo (flint), or Pebble Round 2 (gabbro)
+- **Pebble OS 4.x**
 - Pebble app paired to your watch
 - [`pebble` CLI](https://developer.rebble.io/developer.pebble.com/sdk/install/) (for sideloading)
 
@@ -119,7 +122,7 @@ src/c/              Watch-app C sources
 src/pkjs/           PebbleKit JS (empty — pure on-watch app)
 test/watch/         C unit tests
 wscript             Pebble/Waf build config
-package.json        App manifest (UUID, platforms, target `flint`)
+package.json        App manifest (UUID, platforms, targets: basalt, chalk, diorite, emery, flint, gabbro)
 build/              Build output (do not commit)
 ```
 
@@ -127,3 +130,9 @@ build/              Build output (do not commit)
 
 - Capped at 39 minutes (Roman numeral ceiling on this small vibe engine).
 - Timers are **not persistent** — they reset to 0 when the app exits.
+
+## To Do
+
+- Phone config allows toggling between Roman numeral and simple per-minute taps
+- Support count-ups past 39 minutes
+

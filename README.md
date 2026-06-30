@@ -135,4 +135,6 @@ build/              Build output (do not commit)
 
 - Phone config allows toggling between Roman numeral and simple per-minute taps
 - Support count-ups past 39 minutes
+- Scale up icons to 36x36 for high-res displays
+
 
